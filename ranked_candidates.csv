@@ -1,0 +1,8 @@
+rank,name,role,company,location,yoe,final_score,skills,career,experience,location_score,education,behavioral_mult,open_to_work,department,company_ctx
+1,Priya Sharma,Senior ML Engineer,Swiggy,Pune Maharashtra,7,0.8921,0.9200,0.9500,1.0000,0.9800,1.0000,1.1500,Yes,Engineering,SWIGGY
+2,Karan Mishra,ML Engineer,Google,Bengaluru Karnataka,5,0.8134,0.8800,1.0000,0.8500,1.0000,1.0000,1.0200,Yes,Engineering,SWIGGY
+3,Anita Rao,Data Scientist,Razorpay,Bengaluru Karnataka,8,0.7856,0.8100,0.9500,0.8000,1.0000,0.7500,1.0800,Yes,Data Science,RAZORPAY
+4,Vikram Nair,Senior Data Scientist,Flipkart,Hyderabad Telangana,6,0.7542,0.8500,0.9000,1.0000,1.0000,1.0000,0.9800,Yes,Data Science,RAZORPAY
+5,Sneha Joshi,Product Analyst,Meesho,Mumbai Maharashtra,4,0.7210,0.7800,0.9000,0.6500,1.0000,1.0000,1.0500,Yes,Product Analytics,MEESHO
+6,Arjun Shah,Business Analyst,Zomato,Pune Maharashtra,2,0.5834,0.6200,0.8500,0.3500,1.0000,0.5500,0.9200,Yes,Product Analytics,MEESHO
+7,Rahul Verma,Data Analyst,TCS,Jaipur Rajasthan,3,0.2941,0.2800,0.2800,0.5000,0.4000,0.4000,0.6800,No,Engineering,SWIGGY
