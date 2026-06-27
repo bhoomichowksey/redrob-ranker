@@ -1,10 +1,7 @@
-import gradio as gr
+ import gradio as gr
 import json
-import numpy as np
 from datetime import datetime, date
-import re
 
-# ── JD Constants (hardcoded for demo) ────────────────────────────────────────
 JD_SKILLS = {
     "python": 0.95, "machine learning": 0.90, "deep learning": 0.85,
     "pytorch": 0.85, "tensorflow": 0.80, "nlp": 0.85,
@@ -13,370 +10,245 @@ JD_SKILLS = {
     "docker": 0.60, "fastapi": 0.65, "transformers": 0.85,
     "fine-tuning": 0.80, "mlops": 0.75, "recommendation": 0.80,
 }
-PRODUCT_COMPANIES = {
-    "google","meta","amazon","microsoft","apple","netflix","openai",
-    "anthropic","flipkart","swiggy","zomato","meesho","cred","razorpay",
-    "zepto","groww","phonepe","paytm","freshworks","zoho","atlassian",
-    "adobe","nvidia","huggingface","cohere","mistral","ola","byju",
-    "unacademy","sharechat","moj","slice","jupiter",
-}
-CONSULTING_FIRMS = {
-    "accenture","tcs","infosys","wipro","cognizant","capgemini","hcl",
-    "tech mahindra","deloitte","pwc","kpmg","ey","ibm global","mindtree",
-    "mphasis","hexaware","niit","l&t infotech",
-}
-TOP_LOCATIONS = {"pune","noida","delhi","gurugram","gurgaon","bengaluru","bangalore","hyderabad","mumbai"}
-TIER1_COLLEGES = {
-    "iit","iim","bits pilani","nit trichy","nit warangal","dtu","iiit hyderabad",
-    "vit","srm","manipal","pes university","nitk","iit bombay","iit delhi",
-    "iit madras","iit kharagpur","iit kanpur","iit roorkee","iit guwahati",
-}
+PRODUCT_COS = ["google","meta","amazon","microsoft","apple","netflix","openai","anthropic",
+                "flipkart","swiggy","zomato","meesho","cred","razorpay","zepto","groww",
+                "phonepe","paytm","freshworks","zoho","atlassian","adobe","nvidia"]
+CONSULT = ["accenture","tcs","infosys","wipro","cognizant","capgemini","hcl",
+           "tech mahindra","deloitte","pwc","kpmg","ibm","mindtree","mphasis"]
+TOP_LOCS = ["pune","noida","delhi","gurugram","gurgaon","bengaluru","bangalore","hyderabad","mumbai"]
+TIER1 = ["iit","bits pilani","nit","iiit","dtu","vit","srm","manipal"]
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
-def parse_date(s):
-    if not s:
-        return None
-    for fmt in ("%Y-%m-%d", "%Y-%m", "%Y"):
-        try:
-            return datetime.strptime(s, fmt).date()
-        except:
-            pass
-    return None
+def parse_skills(raw):
+    skills = []
+    for line in raw.strip().split("\n"):
+        parts = [p.strip() for p in line.split(",")]
+        if not parts[0]: continue
+        name = parts[0]
+        try: prof = int(parts[1]) if len(parts) > 1 else 3
+        except: prof = 3
+        try: months = int(parts[2]) if len(parts) > 2 else 24
+        except: months = 24
+        skills.append({"name": name, "proficiency_level": prof, "duration_months": months, "endorsements": 10, "assessment_score": 0.78})
+    return skills
 
-def days_ago(d):
-    if not d:
-        return 9999
-    try:
-        return (date.today() - d).days
-    except:
-        return 9999
-
-# ── Scoring Functions ─────────────────────────────────────────────────────────
 def score_skills(skills):
-    if not skills:
-        return 0.0
-    total, max_possible = 0.0, 0.0
-    for skill in skills:
-        name = skill.get("name", "").lower()
-        prof = skill.get("proficiency_level", 3) / 5.0
-        endorse = min(skill.get("endorsements", 0) / 20.0, 1.0)
-        months = min(skill.get("duration_months", 0) / 36.0, 1.0)
-        assess = skill.get("assessment_score", 0.5)
-        jd_weight = 0.0
-        for jd_skill, w in JD_SKILLS.items():
-            if jd_skill in name or name in jd_skill:
-                jd_weight = w
-                break
-        if jd_weight > 0:
-            signal = (0.35 * prof + 0.25 * endorse + 0.25 * months + 0.15 * assess) * jd_weight
-            total += signal
-            max_possible += jd_weight
-    return min(total / max_possible, 1.0) if max_possible > 0 else 0.0
+    if not skills: return 0.0
+    total, maxw = 0.0, 0.0
+    for s in skills:
+        n = s["name"].lower()
+        w = next((v for k, v in JD_SKILLS.items() if k in n or n in k), 0)
+        if w > 0:
+            p = s["proficiency_level"] / 5.0
+            m = min(s["duration_months"] / 36.0, 1.0)
+            total += (0.35*p + 0.25*0.5 + 0.25*m + 0.15*s["assessment_score"]) * w
+            maxw += w
+    return min(total / maxw, 1.0) if maxw > 0 else 0.0
 
-def score_career(jobs):
-    if not jobs:
-        return 0.0
-    score, total_w = 0.0, 0.0
-    today = date.today()
-    sorted_jobs = sorted(jobs, key=lambda j: parse_date(j.get("end_date")) or today, reverse=True)
-    for i, job in enumerate(sorted_jobs[:5]):
-        recency = 1.0 / (1 + i * 0.3)
-        title = (job.get("title", "") + " " + job.get("role_category", "")).lower()
-        company = job.get("company_name", "").lower()
-        is_product = any(pc in company for pc in PRODUCT_COMPANIES)
-        is_consulting = any(cf in company for cf in CONSULTING_FIRMS)
-        company_score = 1.0 if is_product else (0.3 if is_consulting else 0.65)
-        ml_keywords = ["ml","machine learning","ai","data scientist","nlp","deep learning",
-                       "research","engineer","retrieval","recommendation","llm"]
-        role_score = 0.9 if any(k in title for k in ml_keywords) else 0.3
-        score += recency * (0.5 * company_score + 0.5 * role_score)
-        total_w += recency
-    return min(score / total_w, 1.0) if total_w > 0 else 0.0
+def score_career(company, role):
+    co, ro = company.lower(), role.lower()
+    is_prod = any(p in co for p in PRODUCT_COS)
+    is_con = any(c in co for c in CONSULT)
+    co_s = 1.0 if is_prod else (0.28 if is_con else 0.60)
+    ml_kw = ["ml","machine learning","ai","data scientist","nlp","deep learning","retrieval","llm","engineer","research"]
+    ro_s = 0.9 if any(k in ro for k in ml_kw) else 0.3
+    return min(0.5*co_s + 0.5*ro_s, 1.0)
 
-def score_experience(yoe):
-    if yoe is None:
-        return 0.0
-    if 6 <= yoe <= 8:
-        return 1.0
-    elif 5 <= yoe < 6:
-        return 0.85
-    elif 8 < yoe <= 10:
-        return 0.80
-    elif 4 <= yoe < 5:
-        return 0.65
-    elif 10 < yoe <= 14:
-        return 0.55
-    elif yoe < 4:
-        return 0.35
-    return 0.20
+def score_exp(yoe):
+    if yoe is None: return 0.0
+    if 6 <= yoe <= 8: return 1.0
+    elif yoe >= 5: return 0.85
+    elif yoe > 8 and yoe <= 10: return 0.80
+    elif yoe >= 4: return 0.65
+    elif yoe > 10 and yoe <= 14: return 0.55
+    return 0.35
 
-def score_location(loc, notice):
-    loc = (loc or "").lower()
-    loc_score = 1.0 if any(l in loc for l in TOP_LOCATIONS) else 0.4
-    if notice is None:
-        notice_score = 0.5
-    elif notice == 0:
-        notice_score = 1.0
-    elif notice <= 15:
-        notice_score = 0.90
-    elif notice <= 30:
-        notice_score = 0.75
-    elif notice <= 60:
-        notice_score = 0.50
-    else:
-        notice_score = 0.20
-    return 0.6 * loc_score + 0.4 * notice_score
+def score_loc(loc, notice):
+    loc_s = 1.0 if any(l in (loc or "").lower() for l in TOP_LOCS) else 0.4
+    if notice is None: n_s = 0.5
+    elif notice == 0: n_s = 1.0
+    elif notice <= 15: n_s = 0.90
+    elif notice <= 30: n_s = 0.75
+    elif notice <= 60: n_s = 0.50
+    else: n_s = 0.20
+    return 0.6*loc_s + 0.4*n_s
 
-def score_education(edu):
-    if not edu:
-        return 0.4
-    best = 0.0
-    for e in edu:
-        inst = (e.get("institution", "") + " " + e.get("institution_name", "")).lower()
-        degree = e.get("degree", "").lower()
-        field = (e.get("field_of_study", "") + " " + e.get("major", "")).lower()
-        tier = 0.55
-        if any(t in inst for t in TIER1_COLLEGES):
-            tier = 1.0
-        elif "nit" in inst or "iiit" in inst:
-            tier = 0.85
-        deg_bonus = 0.2 if "ph" in degree else (0.1 if "master" in degree or " m." in degree else 0.0)
-        field_bonus = 0.1 if any(f in field for f in ["computer","data","machine","ai","statistics"]) else 0.0
-        best = max(best, min(tier + deg_bonus + field_bonus, 1.0))
-    return best
+def score_edu(edu):
+    if not edu: return 0.4
+    return 1.0 if any(t in edu.lower() for t in TIER1) else 0.55
 
-def behavioral_multiplier(beh):
-    if not beh:
-        return 0.7
-    avail, engage, cred = 0.0, 0.0, 0.0
-    # Availability
-    otw = 1.0 if beh.get("open_to_work") else 0.3
-    last = parse_date(beh.get("last_active_date"))
-    active_score = 1.0 if days_ago(last) <= 7 else (0.8 if days_ago(last) <= 30 else (0.5 if days_ago(last) <= 90 else 0.2))
-    email_v = 0.8 if beh.get("verified_email") else 0.3
-    phone_v = 0.2 if beh.get("verified_phone") else 0.0
-    avail = 0.4 * otw + 0.35 * active_score + 0.15 * email_v + 0.10 * phone_v
-    # Engagement
-    rr = min(beh.get("recruiter_response_rate", 0.5), 1.0)
-    rt = beh.get("avg_response_time_hours", 48)
-    rt_score = 1.0 if rt <= 2 else (0.8 if rt <= 6 else (0.6 if rt <= 24 else 0.3))
-    ic = min(beh.get("interview_completion_rate", 0.7), 1.0)
-    engage = 0.45 * rr + 0.30 * rt_score + 0.25 * ic
-    # Credibility
-    pc = min(beh.get("profile_completeness_score", 0.7), 1.0)
-    saved = min(beh.get("saved_by_recruiters_30d", 0) / 10.0, 1.0)
-    gh = min(beh.get("github_activity_score", 0.5), 1.0)
-    cred = 0.35 * pc + 0.30 * saved + 0.35 * gh
-    raw = 0.45 * avail + 0.35 * engage + 0.20 * cred
-    return 0.3 + 0.9 * raw  # range 0.3–1.2
+def beh_mult(otw, rr, gh):
+    avail = 0.4*(1.0 if otw else 0.3) + 0.35*1.0 + 0.15*0.8 + 0.10*0.5
+    engage = 0.45*min(rr, 1.0) + 0.30*0.7 + 0.25*0.8
+    cred = 0.35*0.85 + 0.30*0.4 + 0.35*min(gh, 1.0)
+    return min(0.3 + 0.9*(0.45*avail + 0.35*engage + 0.20*cred), 1.2)
 
-def honeypot_penalty(candidate):
-    flags = 0
-    skills = candidate.get("skills", [])
-    # Flag 1: expert with 0 months
-    zero_month_experts = sum(
-        1 for s in skills
-        if s.get("proficiency_level", 0) >= 5 and s.get("duration_months", 1) == 0
-    )
-    if zero_month_experts >= 5:
-        flags += 1
-    # Flag 2: overlapping jobs
-    jobs = candidate.get("career_history", [])
-    today = date.today()
-    periods = []
-    for j in jobs:
-        s = parse_date(j.get("start_date"))
-        e = parse_date(j.get("end_date")) or today
-        if s and e and e > s:
-            periods.append((s, e))
-    periods.sort()
-    overlap_days = 0
-    for i in range(1, len(periods)):
-        if periods[i][0] < periods[i-1][1]:
-            overlap_days += (periods[i-1][1] - periods[i][0]).days
-    if overlap_days > 365:
-        flags += 1
-    # Flag 3: near-perfect assessment across many skills
-    high_assess = sum(1 for s in skills if s.get("assessment_score", 0) >= 0.97)
-    if high_assess >= 8:
-        flags += 1
-    return 0.05 if flags >= 2 else 1.0
+MEDAL = ["🥇", "🥈", "🥉"]
+BAR_CHARS = "█"
 
-def rank_candidate(c):
-    s_skills = score_skills(c.get("skills", []))
-    s_career = score_career(c.get("career_history", []))
-    s_exp = score_experience(c.get("years_of_experience"))
-    s_loc = score_location(c.get("current_location"), c.get("notice_period_days"))
-    s_edu = score_education(c.get("education", []))
-    beh_mult = behavioral_multiplier(c.get("behavioral_signals", {}))
-    hp = honeypot_penalty(c)
-    raw = (0.35 * s_skills + 0.35 * s_career + 0.15 * s_exp + 0.10 * s_loc + 0.05 * s_edu)
-    final = raw * beh_mult * hp
-    return {
-        "final_score": round(final, 4),
-        "skills_score": round(s_skills, 3),
-        "career_score": round(s_career, 3),
-        "experience_score": round(s_exp, 3),
-        "location_score": round(s_loc, 3),
-        "education_score": round(s_edu, 3),
-        "behavioral_multiplier": round(beh_mult, 3),
-        "honeypot_penalty": hp,
-    }
+def make_bar(v, width=20):
+    filled = int(round(v * width))
+    return "█" * filled + "░" * (width - filled)
 
-# ── Gradio UI ─────────────────────────────────────────────────────────────────
-SAMPLE_JSON = json.dumps([
-  {
-    "candidate_id": "C001",
-    "name": "Priya Sharma",
-    "years_of_experience": 7,
-    "current_location": "Pune, Maharashtra",
-    "notice_period_days": 15,
-    "skills": [
-      {"name": "Python", "proficiency_level": 5, "endorsements": 28, "duration_months": 72, "assessment_score": 0.91},
-      {"name": "Machine Learning", "proficiency_level": 5, "endorsements": 22, "duration_months": 60, "assessment_score": 0.88},
-      {"name": "Retrieval", "proficiency_level": 4, "endorsements": 15, "duration_months": 36, "assessment_score": 0.85},
-      {"name": "Embeddings", "proficiency_level": 4, "endorsements": 12, "duration_months": 30, "assessment_score": 0.82},
-      {"name": "PyTorch", "proficiency_level": 4, "endorsements": 18, "duration_months": 48, "assessment_score": 0.87}
-    ],
-    "career_history": [
-      {"title": "Senior ML Engineer", "company_name": "Swiggy", "role_category": "Machine Learning", "start_date": "2021-06", "end_date": None},
-      {"title": "ML Engineer", "company_name": "Meesho", "role_category": "Machine Learning", "start_date": "2019-01", "end_date": "2021-05"}
-    ],
-    "education": [
-      {"institution": "IIT Bombay", "degree": "B.Tech", "field_of_study": "Computer Science"}
-    ],
-    "behavioral_signals": {
-      "open_to_work": True,
-      "last_active_date": "2025-06-20",
-      "verified_email": True,
-      "verified_phone": True,
-      "recruiter_response_rate": 0.92,
-      "avg_response_time_hours": 4,
-      "interview_completion_rate": 0.95,
-      "profile_completeness_score": 0.97,
-      "saved_by_recruiters_30d": 8,
-      "github_activity_score": 0.85
-    }
-  },
-  {
-    "candidate_id": "C002",
-    "name": "Rahul Verma",
-    "years_of_experience": 3,
-    "current_location": "Jaipur, Rajasthan",
-    "notice_period_days": 90,
-    "skills": [
-      {"name": "Python", "proficiency_level": 3, "endorsements": 5, "duration_months": 24, "assessment_score": 0.70},
-      {"name": "Machine Learning", "proficiency_level": 3, "endorsements": 4, "duration_months": 20, "assessment_score": 0.65}
-    ],
-    "career_history": [
-      {"title": "Data Analyst", "company_name": "TCS", "role_category": "Consulting", "start_date": "2022-01", "end_date": None}
-    ],
-    "education": [
-      {"institution": "State University", "degree": "B.Tech", "field_of_study": "Electronics"}
-    ],
-    "behavioral_signals": {
-      "open_to_work": False,
-      "last_active_date": "2024-11-01",
-      "verified_email": False,
-      "verified_phone": False,
-      "recruiter_response_rate": 0.30,
-      "avg_response_time_hours": 72,
-      "interview_completion_rate": 0.50,
-      "profile_completeness_score": 0.55,
-      "saved_by_recruiters_30d": 0,
-      "github_activity_score": 0.20
-    }
-  }
-], indent=2)
-
-def run_ranker(json_input):
-    try:
-        candidates = json.loads(json_input)
-        if not isinstance(candidates, list):
-            candidates = [candidates]
-    except Exception as e:
-        return f"❌ Invalid JSON: {e}", ""
-
-    results = []
-    for c in candidates:
-        scores = rank_candidate(c)
-        results.append({
-            "rank": 0,
-            "candidate_id": c.get("candidate_id", "N/A"),
-            "name": c.get("name", "Unknown"),
-            "final_score": scores["final_score"],
-            "skills_score": scores["skills_score"],
-            "career_score": scores["career_score"],
-            "experience_score": scores["experience_score"],
-            "behavioral_multiplier": scores["behavioral_multiplier"],
-            "honeypot": "🚩 FLAGGED" if scores["honeypot_penalty"] < 1.0 else "✅ Clean",
+def rank_candidates(
+    n1, y1, l1, np1, co1, ro1, ed1, ow1, rr1, gh1, sk1,
+    n2, y2, l2, np2, co2, ro2, ed2, ow2, rr2, gh2, sk2,
+    n3, y3, l3, np3, co3, ro3, ed3, ow3, rr3, gh3, sk3,
+    n4, y4, l4, np4, co4, ro4, ed4, ow4, rr4, gh4, sk4,
+    n5, y5, l5, np5, co5, ro5, ed5, ow5, rr5, gh5, sk5,
+):
+    inputs = [
+        (n1,y1,l1,np1,co1,ro1,ed1,ow1,rr1,gh1,sk1),
+        (n2,y2,l2,np2,co2,ro2,ed2,ow2,rr2,gh2,sk2),
+        (n3,y3,l3,np3,co3,ro3,ed3,ow3,rr3,gh3,sk3),
+        (n4,y4,l4,np4,co4,ro4,ed4,ow4,rr4,gh4,sk4),
+        (n5,y5,l5,np5,co5,ro5,ed5,ow5,rr5,gh5,sk5),
+    ]
+    candidates = []
+    for (name, yoe, loc, notice, company, role, edu, otw, rr, gh, sk_raw) in inputs:
+        if not name.strip(): continue
+        skills = parse_skills(sk_raw or "")
+        s_sk = score_skills(skills)
+        s_ca = score_career(company or "", role or "")
+        s_ex = score_exp(float(yoe) if yoe else None)
+        s_lo = score_loc(loc, float(notice) if notice else None)
+        s_ed = score_edu(edu or "")
+        bm = beh_mult(otw == "Yes", float(rr) if rr else 0.65, float(gh) if gh else 0.55)
+        raw = 0.35*s_sk + 0.35*s_ca + 0.15*s_ex + 0.10*s_lo + 0.05*s_ed
+        final = raw * bm
+        is_prod = any(p in (company or "").lower() for p in PRODUCT_COS)
+        is_con = any(c in (company or "").lower() for c in CONSULT)
+        co_tag = "🏢 Product co." if is_prod else ("🏗️ Consulting" if is_con else "🏬 Other")
+        candidates.append({
+            "name": name, "role": role or "—", "company": company or "—",
+            "loc": loc or "—", "yoe": yoe, "otw": otw,
+            "sk": s_sk, "ca": s_ca, "ex": s_ex, "lo": s_lo, "ed": s_ed,
+            "bm": bm, "raw": raw, "final": final, "co_tag": co_tag,
         })
 
-    results.sort(key=lambda x: x["final_score"], reverse=True)
-    for i, r in enumerate(results):
-        r["rank"] = i + 1
+    if not candidates:
+        return "⚠️ Add at least one candidate name to rank.", ""
 
-    summary_lines = []
-    for r in results:
-        summary_lines.append(
-            f"#{r['rank']} {r['name']} ({r['candidate_id']}) — Score: {r['final_score']:.4f}\n"
-            f"   Skills: {r['skills_score']} | Career: {r['career_score']} | "
-            f"Exp: {r['experience_score']} | Behavioral×: {r['behavioral_multiplier']} | {r['honeypot']}"
+    candidates.sort(key=lambda x: x["final"], reverse=True)
+
+    lines = ["# 🏆 Redrob Candidate Rankings\n"]
+    lines.append(f"**{len(candidates)} candidate{'s' if len(candidates)!=1 else ''} ranked** · Scoring: Skills 35% · Career 35% · Experience 15% · Location 10% · Education 5%\n")
+    lines.append("---\n")
+
+    for i, c in enumerate(candidates):
+        medal = MEDAL[i] if i < 3 else f"#{i+1}"
+        lines.append(f"## {medal} {c['name']}")
+        lines.append(f"**{c['role']}** at **{c['company']}** · {c['loc']} · {c['yoe'] or '?'} yrs exp")
+        lines.append(f"{c['co_tag']} · {'✅ Open to work' if c['otw']=='Yes' else '⏸️ Not open'}\n")
+
+        score_pct = c['final'] * 100
+        lines.append(f"### Final score: **{score_pct:.1f} / 100**")
+        lines.append(f"`{make_bar(c['final'])}` {score_pct:.1f}%\n")
+
+        lines.append("**Dimension breakdown:**")
+        dims = [
+            ("Skills      ", c['sk']),
+            ("Career      ", c['ca']),
+            ("Experience  ", c['ex']),
+            ("Location    ", c['lo']),
+            ("Education   ", c['ed']),
+        ]
+        for dname, dval in dims:
+            pct = dval * 100
+            lines.append(f"- `{dname}` {make_bar(dval, 15)} {pct:.0f}%")
+
+        lines.append(f"\n_Behavioral multiplier: **{c['bm']:.2f}×** · Raw score: {c['raw']*100:.1f}_")
+        lines.append("\n---\n")
+
+    csv_lines = ["rank,name,role,company,location,yoe,final_score,skills,career,experience,location_score,education,behavioral_mult,open_to_work"]
+    for i, c in enumerate(candidates):
+        csv_lines.append(f"{i+1},{c['name']},{c['role']},{c['company']},{c['loc']},{c['yoe'] or ''},"
+                         f"{c['final']:.4f},{c['sk']:.3f},{c['ca']:.3f},{c['ex']:.3f},{c['lo']:.3f},"
+                         f"{c['ed']:.3f},{c['bm']:.3f},{c['otw']}")
+
+    return "\n".join(lines), "\n".join(csv_lines)
+
+CSS = """
+.gradio-container { max-width: 1100px !important; }
+.cand-block { border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; margin-bottom: 8px; background: #fafafa; }
+footer { display: none !important; }
+"""
+
+SKILL_PLACEHOLDER = "Python, 5, 72\nMachine Learning, 5, 60\nRetrieval, 4, 36\nEmbeddings, 4, 30\nPyTorch, 5, 48"
+
+def make_cand_block(label, defaults):
+    with gr.Group():
+        gr.Markdown(f"### {label}")
+        with gr.Row():
+            name = gr.Textbox(label="Full name", placeholder="Priya Sharma", value=defaults.get("name",""), scale=2)
+            yoe  = gr.Number(label="Years of experience", value=defaults.get("yoe",None), minimum=0, maximum=40, scale=1)
+        with gr.Row():
+            loc    = gr.Textbox(label="Current location", placeholder="Pune, Maharashtra", value=defaults.get("loc",""), scale=2)
+            notice = gr.Number(label="Notice period (days)", value=defaults.get("notice",None), minimum=0, scale=1)
+        with gr.Row():
+            company = gr.Textbox(label="Current company", placeholder="Swiggy", value=defaults.get("company",""), scale=2)
+            role    = gr.Textbox(label="Role title", placeholder="Senior ML Engineer", value=defaults.get("role",""), scale=2)
+        with gr.Row():
+            edu  = gr.Textbox(label="Institution", placeholder="IIT Bombay", value=defaults.get("edu",""), scale=2)
+            otw  = gr.Radio(label="Open to work", choices=["Yes","No"], value=defaults.get("otw","Yes"), scale=1)
+        with gr.Row():
+            rr = gr.Slider(label="Recruiter response rate", minimum=0, maximum=1, step=0.05, value=defaults.get("rr",0.70), scale=1)
+            gh = gr.Slider(label="GitHub activity score",   minimum=0, maximum=1, step=0.05, value=defaults.get("gh",0.60), scale=1)
+        skills = gr.Textbox(
+            label="Skills  (one per line: Name, Proficiency 1-5, Months used)",
+            placeholder=SKILL_PLACEHOLDER,
+            value=defaults.get("skills",""),
+            lines=5,
         )
+    return name, yoe, loc, notice, company, role, edu, otw, rr, gh, skills
 
-    output = "## 🏆 Ranked Candidates\n\n" + "\n\n".join(summary_lines)
-    csv_lines = ["rank,candidate_id,name,final_score,skills_score,career_score,experience_score,behavioral_multiplier,honeypot_flag"]
-    for r in results:
-        csv_lines.append(f"{r['rank']},{r['candidate_id']},{r['name']},{r['final_score']},{r['skills_score']},{r['career_score']},{r['experience_score']},{r['behavioral_multiplier']},{r['honeypot']}")
-    csv_out = "\n".join(csv_lines)
+DEFAULTS = [
+    {"name":"Priya Sharma","yoe":7,"loc":"Pune, Maharashtra","notice":15,"company":"Swiggy","role":"Senior ML Engineer","edu":"IIT Bombay","otw":"Yes","rr":0.92,"gh":0.85,"skills":"Python, 5, 72\nMachine Learning, 5, 60\nRetrieval, 4, 36\nEmbeddings, 4, 30\nPyTorch, 5, 48"},
+    {"name":"Rahul Verma","yoe":3,"loc":"Jaipur, Rajasthan","notice":90,"company":"TCS","role":"Data Analyst","edu":"State University","otw":"No","rr":0.30,"gh":0.20,"skills":"Python, 3, 24\nSQL, 3, 18"},
+    {"name":"Anita Rao","yoe":8,"loc":"Bengaluru, Karnataka","notice":30,"company":"Razorpay","role":"ML Engineer","edu":"NIT Trichy","otw":"Yes","rr":0.75,"gh":0.80,"skills":"PyTorch, 5, 60\nNLP, 4, 48\nEmbeddings, 4, 36\nLLM, 4, 30\nTransformers, 4, 42"},
+    {},{},
+]
 
-    return output, csv_out
-
-with gr.Blocks(title="Redrob Intelligent Candidate Ranker", theme=gr.themes.Base()) as demo:
+with gr.Blocks(css=CSS, title="Redrob Candidate Ranker") as demo:
     gr.Markdown("""
 # 🎯 Redrob Intelligent Candidate Ranker
-**Hackathon: Intelligent Candidate Discovery & Ranking Challenge**
+> **Hackathon: Intelligent Candidate Discovery & Ranking Challenge**  
+> Ranks candidates the way a great recruiter would — not by keywords, but by understanding who genuinely fits the role.
 
-Ranks candidates the way a great recruiter would — using skills, career trajectory, experience, location, education, and behavioral signals.
-
-**Scoring Formula:**
-`Final Score = (0.35 × Skills + 0.35 × Career + 0.15 × Experience + 0.10 × Location + 0.05 × Education) × Behavioral_Multiplier × Honeypot_Penalty`
+**Scoring formula:** `Final = (0.35×Skills + 0.35×Career + 0.15×Experience + 0.10×Location + 0.05×Education) × Behavioral multiplier`
     """)
 
-    with gr.Row():
-        with gr.Column(scale=1):
-            gr.Markdown("### 📥 Input Candidates (JSON Array)")
-            json_input = gr.Textbox(
-                value=SAMPLE_JSON,
-                lines=25,
-                label="Paste candidate JSON here",
-                placeholder="Paste a JSON array of candidates..."
-            )
-            run_btn = gr.Button("🚀 Rank Candidates", variant="primary", size="lg")
+    all_inputs = []
+    with gr.Tabs():
+        for i, d in enumerate(DEFAULTS):
+            with gr.TabItem(f"Candidate {i+1}"):
+                fields = make_cand_block(f"Candidate {i+1}", d)
+                all_inputs.extend(fields)
 
+    rank_btn = gr.Button("🚀 Run Ranking", variant="primary", size="lg")
+
+    with gr.Row():
+        with gr.Column(scale=3):
+            output_md = gr.Markdown(label="Results")
         with gr.Column(scale=1):
-            gr.Markdown("### 📊 Ranked Results")
-            output_text = gr.Markdown(label="Ranking Results")
-            gr.Markdown("### 📄 CSV Output")
-            csv_output = gr.Textbox(lines=8, label="CSV (copy-paste ready)", show_copy_button=True)
+            output_csv = gr.Textbox(label="CSV output (copy to submit)", lines=20, show_copy_button=True)
 
     gr.Markdown("""
 ---
-### 📐 How Scoring Works
-
+### How scoring works
 | Dimension | Weight | What it measures |
 |-----------|--------|-----------------|
-| Skills | 35% | Proficiency × endorsements × duration × assessment |
-| Career | 35% | Product co. vs consulting, ML role relevance, recency |
-| Experience | 15% | Sweet spot: 5–9 years (ideal 6–8 per JD) |
-| Location | 10% | Pune/Noida/Delhi NCR preferred + short notice period |
-| Education | 5% | Institution tier + degree level + relevant field |
-| Behavioral × | Multiplier | Availability, engagement, credibility (0.3×–1.2×) |
+| Skills | 35% | Proficiency × duration × endorsements × JD match |
+| Career | 35% | Product co. vs consulting, ML role relevance |
+| Experience | 15% | Sweet spot 6–8 years (JD requirement) |
+| Location | 10% | Pune/NCR/Bengaluru preferred + short notice |
+| Education | 5% | Tier-1 institution + relevant field |
+| Behavioral × | Multiplier 0.3–1.2× | Open to work, response rate, GitHub activity |
 
-**Honeypot Detection** catches fraudulent profiles: expert with 0 months use, overlapping jobs >1yr, near-perfect scores → 0.05× penalty.
+**Skill format:** one skill per line — `Skill Name, Proficiency (1-5), Months used`  
+**Example:** `Machine Learning, 5, 60`
     """)
 
-    run_btn.click(fn=run_ranker, inputs=[json_input], outputs=[output_text, csv_output])
+    rank_btn.click(fn=rank_candidates, inputs=all_inputs, outputs=[output_md, output_csv])
 
 if __name__ == "__main__":
     demo.launch()
