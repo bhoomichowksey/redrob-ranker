@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+
+
+
+<style>
+  @import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=Inter:wght@300;400;500;600&display=swap");
+  *{margin:0;padding:0;box-sizing:border-box;}
+
+  body{
+    font-family:'Inter',sans-serif;
+    background:#0e0b1e;
+    min-height:100vh;
+    color:#e8e4f8;
+    position:relative;
+    overflow-x:hidden;
+  }
+
+  /* ---- BACKGROUND: deep purple + orange glow + vertical streaks ---- */
+  body::before{
+    content:'';
+    position:fixed;
+    inset:0;
+    background:
+      radial-gradient(ellipse 60% 80% at 0% 50%, rgba(180,70,10,0.55) 0%, transparent 55%),
+      radial-gradient(ellipse 40% 60% at 100% 30%, rgba(80,40,160,0.4) 0%, transparent 55%),
+      linear-gradient(170deg,#1a0f3a 0%,#0e0b1e 40%,#0b0618 100%);
+    z-index:0;
+    pointer-events:none;
+  }
+
+  /* vertical light streaks */
+  body::after{
+    content:'';
+    position:fixed;
+    inset:0;
+    background-image:repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      transparent 28px,
+      rgba(255,255,255,0.018) 28px,
+      rgba(255,255,255,0.018) 29px
+    );
+    z-index:0;
+    pointer-events:none;
+  }
+
+  .screen{display:none;position:relative;z-index:1;}
+  .screen.active{display:block;}
+
+  /* ---- HERO ---- */
+  .hero{
+    text-align:center;
+    padding:48px 24px 28px;
+  }
+  .hero-title{
+    font-family:'Playfair Display',serif;
+    font-style:italic;
+    font-weight:700;
+    font-size:58px;
+    letter-spacing:-1px;
+    color:#f0ecff;
+    line-height:1.05;
+    margin-bottom:18px;
+  }
+  .hero-title .dot{color:#f0ecff;}
+
+  .brand-row{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:16px;
+    margin-bottom:20px;
+  }
+  .brand-logo{
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:17px;
+    color:rgba(230,225,255,0.75);
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .brand-logo svg{width:20px;height:20px;fill:rgba(230,225,255,0.75);}
+  .brand-divider{width:1px;height:20px;background:rgba(230,225,255,0.25);}
+
+  .tagline-pill{
+    display:inline-block;
+    border:1.5px solid rgba(220,215,255,0.35);
+    border-radius:50px;
+    padding:10px 28px;
+    font-size:15px;
+    color:rgba(230,225,255,0.85);
+    margin-bottom:32px;
+    letter-spacing:0.2px;
+  }
+
+  /* ---- AUTH CARD ---- */
+  .center{display:flex;flex-direction:column;align-items:center;padding:0 16px 36px;}
+
+  .auth-card{
+    background:rgba(255,255,255,0.045);
+    border:1px solid rgba(180,160,255,0.18);
+    border-radius:20px;
+    padding:28px 28px 24px;
+    width:100%;
+    max-width:420px;
+    backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);
+  }
+
+  .tab-row{display:flex;background:rgba(0,0,0,0.25);border-radius:10px;padding:3px;margin-bottom:22px;gap:3px;}
+  .tab{flex:1;padding:8px;border-radius:8px;border:none;background:transparent;color:rgba(200,190,255,0.45);font-size:13px;font-family:'Inter',sans-serif;cursor:pointer;transition:all 0.2s;font-weight:500;}
+  .tab.active{background:rgba(110,90,210,0.38);color:#ddd8ff;border:1px solid rgba(150,130,255,0.38);}
+
+  .auth-section{display:none;} .auth-section.active{display:block;}
+  .section-label{font-size:12px;color:rgba(200,190,255,0.4);margin-bottom:16px;text-align:center;}
+
+  /* FIELDS */
+  .field{display:flex;flex-direction:column;gap:5px;margin-bottom:13px;}
+  .field label{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:rgba(200,190,255,0.42);}
+  .field input,.field select{
+    background:rgba(255,255,255,0.055);
+    border:1px solid rgba(180,160,255,0.18);
+    border-radius:10px;
+    padding:10px 13px;
+    color:#e8e4f8;
+    font-size:13px;
+    font-family:'Inter',sans-serif;
+    width:100%;
+    outline:none;
+    transition:border-color 0.2s;
+  }
+  .field input::placeholder{color:rgba(200,190,255,0.25);}
+  .field input:focus,.field select:focus{border-color:rgba(140,120,255,0.6);background:rgba(255,255,255,0.08);}
+  .field select option{background:#160f30;color:#e8e4f8;}
+
+  /* DEPT GRID */
+  .dept-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:2px;}
+  .dept-pill{
+    padding:8px 10px;border-radius:9px;
+    border:1px solid rgba(180,160,255,0.16);
+    background:rgba(255,255,255,0.03);
+    color:rgba(200,190,255,0.48);
+    font-size:11px;cursor:pointer;text-align:center;
+    transition:all 0.15s;font-family:'Inter',sans-serif;line-height:1.3;
+  }
+  .dept-pill.sel{background:rgba(110,90,210,0.32);border-color:rgba(150,130,255,0.55);color:#ddd8ff;}
+  .dept-pill .dept-icon{font-size:15px;display:block;margin-bottom:3px;}
+
+  .err{font-size:12px;color:#ff8888;text-align:center;margin-bottom:10px;min-height:14px;}
+  .ok{font-size:12px;color:#70e0b0;text-align:center;margin-bottom:10px;min-height:14px;}
+
+  /* CTA BUTTON — periwinkle blue like screenshot */
+  .btn-primary{
+    width:100%;padding:12px;border-radius:11px;border:none;
+    background:#7b7fe8;
+    color:#fff;font-size:13px;font-weight:600;
+    font-family:'Inter',sans-serif;cursor:pointer;
+    transition:all 0.2s;margin-top:4px;
+    letter-spacing:0.2px;
+  }
+  .btn-primary:hover{background:#8e92ef;transform:translateY(-1px);}
+
+  .demo-hint{
+    margin-top:16px;padding:12px 14px;
+    background:rgba(255,255,255,0.025);
+    border:1px solid rgba(180,160,255,0.1);
+    border-radius:11px;
+    font-size:11px;color:rgba(200,190,255,0.38);line-height:1.8;
+  }
+  .demo-hint strong{color:rgba(200,190,255,0.62);}
+  .demo-hint .drow{cursor:pointer;padding:2px 0;transition:color 0.15s;}
+  .demo-hint .drow:hover{color:rgba(200,190,255,0.75);}
+
+  /* ---- TOP BAR ---- */
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:13px 22px;
+    background:rgba(10,6,28,0.6);
+    border-bottom:1px solid rgba(180,160,255,0.1);
+    flex-wrap:wrap;gap:8px;
+    backdrop-filter:blur(6px);
+  }
+  .topbar-left{display:flex;align-items:center;gap:10px;}
+  .topbar-title{
+    font-family:'Playfair Display',serif;font-style:italic;
+    font-size:20px;color:#f0ecff;font-weight:700;
+  }
+  .badge-co{padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:0.5px;}
+  .badge-dept{padding:3px 9px;border-radius:20px;font-size:11px;border:1px solid rgba(180,160,255,0.28);color:rgba(200,190,255,0.68);}
+  .recruiter-name{font-size:12px;color:rgba(200,190,255,0.5);}
+  .btn-logout{
+    padding:6px 14px;border-radius:8px;
+    border:1px solid rgba(180,160,255,0.2);
+    background:rgba(255,255,255,0.04);
+    color:rgba(200,190,255,0.52);font-size:11px;cursor:pointer;font-family:'Inter',sans-serif;
+  }
+  .btn-logout:hover{background:rgba(255,255,255,0.08);}
+
+  /* WEIGHTS BAR */
+  .weights-bar{
+    background:rgba(10,6,28,0.4);
+    border-bottom:1px solid rgba(180,160,255,0.07);
+    padding:10px 22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  }
+  .wt-label{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:rgba(200,190,255,0.35);white-space:nowrap;}
+  .wt-pills{display:flex;gap:7px;flex-wrap:wrap;}
+  .wt-pill{font-size:11px;padding:3px 9px;border-radius:20px;border:1px solid rgba(180,160,255,0.16);color:rgba(200,190,255,0.5);}
+  .wt-pill.hi{border-color:rgba(140,120,255,0.5);color:#c0b8ff;background:rgba(110,90,210,0.18);}
+
+  /* MAIN */
+  .main-content{display:flex;flex-direction:column;align-items:center;padding:18px 16px 4px;}
+  .section-title{
+    font-family:'Playfair Display',serif;font-style:italic;
+    font-size:22px;color:#f0ecff;
+    margin-bottom:14px;text-align:center;width:100%;max-width:700px;
+  }
+
+  /* CANDIDATE CARDS */
+  .candidate-card{
+    background:rgba(255,255,255,0.038);
+    border:1px solid rgba(180,160,255,0.13);
+    border-radius:14px;padding:16px;margin-bottom:9px;
+    width:100%;max-width:700px;transition:border-color 0.2s;
+  }
+  .candidate-card:hover{border-color:rgba(180,160,255,0.28);}
+  .card-header{display:flex;align-items:center;gap:9px;margin-bottom:12px;}
+  .avatar{
+    width:38px;height:38px;border-radius:50%;
+    background:linear-gradient(135deg,#6b5ce7,#a855f7);
+    display:flex;align-items:center;justify-content:center;
+    font-weight:600;font-size:12px;color:#fff;flex-shrink:0;
+  }
+  .card-label{font-size:11px;color:rgba(200,190,255,0.42);}
+  .card-name-preview{font-size:13px;color:#e8e4f8;font-weight:500;}
+
+  .field-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .fg{display:flex;flex-direction:column;gap:4px;}
+  .fg.full{grid-column:1/-1;}
+  .fg label{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:rgba(200,190,255,0.38);}
+  .fg input,.fg textarea{
+    background:rgba(255,255,255,0.05);
+    border:1px solid rgba(180,160,255,0.15);
+    border-radius:8px;padding:7px 10px;
+    color:#e8e4f8;font-size:12px;font-family:'Inter',sans-serif;
+    width:100%;outline:none;transition:border-color 0.2s;
+  }
+  .fg input::placeholder,.fg textarea::placeholder{color:rgba(200,190,255,0.22);}
+  .fg input:focus,.fg textarea:focus{border-color:rgba(140,120,255,0.5);}
+  .fg textarea{resize:vertical;min-height:58px;line-height:1.5;}
+
+  .slider-row{display:flex;align-items:center;gap:7px;}
+  input[type="range"]{flex:1;-webkit-appearance:none;height:3px;border-radius:2px;background:rgba(180,160,255,0.16);border:none;padding:0;}
+  input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:#7b7fe8;cursor:pointer;}
+  .sv{font-size:11px;color:#a0a8f8;min-width:26px;text-align:right;}
+
+  .radio-row{display:flex;gap:5px;}
+  .rpill{flex:1;padding:6px;border-radius:7px;border:1px solid rgba(180,160,255,0.15);background:rgba(255,255,255,0.03);color:rgba(200,190,255,0.45);font-size:11px;cursor:pointer;text-align:center;transition:all 0.15s;}
+  .rpill.sel{background:rgba(110,90,210,0.3);border-color:rgba(150,130,255,0.52);color:#ddd8ff;}
+
+  /* ACTION BUTTONS */
+  .action-center{display:flex;justify-content:center;gap:10px;padding:12px 16px 8px;flex-wrap:wrap;width:100%;}
+  .btn-add{
+    padding:11px 26px;border-radius:10px;
+    border:1px solid rgba(180,160,255,0.28);
+    background:rgba(255,255,255,0.05);
+    color:#ccc8f8;font-size:13px;font-family:'Inter',sans-serif;
+    cursor:pointer;transition:all 0.2s;font-weight:500;
+  }
+  .btn-add:hover{background:rgba(255,255,255,0.09);}
+  .btn-rank{
+    padding:11px 34px;border-radius:10px;border:none;
+    background:#7b7fe8;
+    color:#fff;font-size:13px;font-weight:600;
+    font-family:'Inter',sans-serif;cursor:pointer;transition:all 0.2s;
+    box-shadow:0 4px 20px rgba(123,127,232,0.35);
+  }
+  .btn-rank:hover{background:#8e92ef;transform:translateY(-1px);}
+  .formula-bar{text-align:center;font-size:10px;color:rgba(200,190,255,0.25);padding:0 24px 14px;letter-spacing:0.3px;width:100%;}
+
+  /* RESULTS */
+  .results-wrap{display:none;flex-direction:column;align-items:center;padding:16px 16px 32px;width:100%;}
+  .nav-row{display:flex;justify-content:center;gap:8px;margin-bottom:16px;}
+  .nav-btn{
+    padding:8px 22px;border-radius:9px;
+    border:1px solid rgba(180,160,255,0.24);
+    background:rgba(255,255,255,0.04);
+    color:#ccc8f8;font-size:12px;cursor:pointer;
+    font-family:'Inter',sans-serif;transition:all 0.2s;
+  }
+  .nav-btn.act{background:rgba(110,90,210,0.3);border-color:rgba(150,130,255,0.6);color:#fff;}
+  .nav-btn:hover{background:rgba(255,255,255,0.08);}
+
+  /* STATS */
+  .stats-row{display:flex;gap:8px;width:100%;max-width:700px;margin-bottom:16px;}
+  .stat-card{flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(180,160,255,0.11);border-radius:11px;padding:11px 14px;text-align:center;}
+  .stat-val{font-size:20px;font-weight:600;color:#c8c4f8;}
+  .stat-lbl{font-size:10px;color:rgba(200,190,255,0.38);margin-top:2px;text-transform:uppercase;letter-spacing:0.5px;}
+
+  /* PODIUM */
+  .podium{display:flex;justify-content:center;align-items:flex-end;gap:9px;margin-bottom:20px;width:100%;max-width:700px;}
+  .pc{border-radius:13px;padding:13px 11px;text-align:center;border:1px solid rgba(180,160,255,0.14);flex:1;max-width:195px;position:relative;overflow:hidden;}
+  .pc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+  .pc.gold{background:rgba(255,200,50,0.06);border-color:rgba(255,200,50,0.26);}
+  .pc.gold::before{background:linear-gradient(90deg,#f5c500,#ffea70);}
+  .pc.silver{background:rgba(180,180,200,0.05);border-color:rgba(180,180,200,0.2);}
+  .pc.silver::before{background:linear-gradient(90deg,#b0b0c8,#d8d8e8);}
+  .pc.bronze{background:rgba(200,120,60,0.05);border-color:rgba(200,120,60,0.2);}
+  .pc.bronze::before{background:linear-gradient(90deg,#cd7f32,#e8a060);}
+  .pm{font-size:24px;margin-bottom:4px;}
+  .pn{font-size:12px;font-weight:600;color:#f0ecff;margin-bottom:2px;}
+  .pr{font-size:10px;color:rgba(200,190,255,0.4);margin-bottom:6px;}
+  .ps{font-size:22px;font-weight:700;color:#c8c4f8;}
+  .psl{font-size:9px;color:rgba(200,190,255,0.32);}
+
+  /* RANK LIST */
+  .rank-list{display:flex;flex-direction:column;gap:7px;width:100%;max-width:700px;}
+  .rrow{background:rgba(255,255,255,0.038);border:1px solid rgba(180,160,255,0.1);border-radius:11px;padding:12px 15px;display:flex;align-items:center;gap:11px;}
+  .rnum{font-size:16px;font-weight:700;color:rgba(200,190,255,0.32);min-width:24px;}
+  .rinfo{flex:1;}
+  .rname{font-size:13px;font-weight:600;color:#e8e4f8;}
+  .rmeta{font-size:11px;color:rgba(200,190,255,0.4);margin-top:2px;}
+  .sblock{text-align:right;}
+  .sbig{font-size:19px;font-weight:700;color:#a0a8f8;}
+  .ssm{font-size:9px;color:rgba(200,190,255,0.32);}
+  .dbars{margin-top:6px;display:flex;flex-direction:column;gap:3px;}
+  .drow2{display:flex;align-items:center;gap:6px;font-size:10px;}
+  .dlbl{color:rgba(200,190,255,0.4);min-width:62px;}
+  .dtrack{flex:1;height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;}
+  .dfill{height:100%;border-radius:2px;}
+  .dpct{color:rgba(200,190,255,0.48);min-width:26px;text-align:right;}
+
+  /* CSV */
+  .csv-box{margin-top:14px;background:rgba(0,0,0,0.18);border:1px solid rgba(180,160,255,0.11);border-radius:11px;padding:11px;width:100%;max-width:700px;}
+  .csv-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+  .csv-ttl{font-size:10px;color:rgba(200,190,255,0.38);letter-spacing:1px;text-transform:uppercase;}
+  .csv-cp{padding:4px 11px;border-radius:6px;border:1px solid rgba(180,160,255,0.2);background:rgba(255,255,255,0.04);color:#a0a8f8;font-size:10px;cursor:pointer;font-family:'Inter',sans-serif;}
+  .csv-cp:hover{background:rgba(255,255,255,0.08);}
+  .csv-body{font-size:9px;color:rgba(200,190,255,0.32);font-family:monospace;white-space:pre;overflow-x:auto;line-height:1.7;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen" class="screen active">
+  <div class="hero">
+    <div class="hero-title" style="background:linear-gradient(90deg,#f0ecff,#a89aff,#f0a060);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">HireScore</div>
+    <div style="font-family:'Inter',sans-serif;font-size:15px;color:rgba(200,190,255,0.55);letter-spacing:3px;text-transform:uppercase;margin-bottom:18px;">Intelligent Recruiter Ranking Portal</div>
+    <div class="tagline-pill">✦ Rank candidates the way a great recruiter would ✦</div>
+  </div>
+
+  <div class="center">
+    <div class="auth-card">
+      <div class="tab-row">
+        <button class="tab active" onclick="switchTab('signin')">Sign in</button>
+        <button class="tab" onclick="switchTab('signup')">Sign up</button>
+      </div>
+
+      <!-- SIGN IN -->
+      <div class="auth-section active" id="signinSection">
+        <div class="section-label">Enter your credentials to continue</div>
+        <div class="field">
+          <label>Company code</label>
+          <input type="text" id="siCompany" placeholder="e.g. SWIGGY · RAZORPAY · MEESHO" oninput="this.value=this.value.toUpperCase()">
+        </div>
+        <div class="field">
+          <label>Recruiter ID</label>
+          <input type="text" id="siRecID" placeholder="e.g. REC001" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')doSignIn()">
+        </div>
+        <div class="err" id="siErr"></div>
+        <button class="btn-primary" onclick="doSignIn()">Sign in →</button>
+        <div class="demo-hint">
+          <strong>Demo accounts — click to fill</strong><br>
+          <div class="drow" onclick="fillDemo('SWIGGY','REC001')">SWIGGY / REC001 — Engineering (ML focus)</div>
+          <div class="drow" onclick="fillDemo('RAZORPAY','REC002')">RAZORPAY / REC002 — Data Science</div>
+          <div class="drow" onclick="fillDemo('MEESHO','REC003')">MEESHO / REC003 — Product Analytics</div>
+        </div>
+      </div>
+
+      <!-- SIGN UP -->
+      <div class="auth-section" id="signupSection">
+        <div class="section-label">Create your recruiter account</div>
+        <div class="field">
+          <label>Full name</label>
+          <input type="text" id="suName" placeholder="Aisha Mehta">
+        </div>
+        <div class="field">
+          <label>Company name</label>
+          <input type="text" id="suCompany" placeholder="Swiggy" oninput="updateCompanyCode()">
+        </div>
+        <div class="field">
+          <label>Company code (auto-generated)</label>
+          <input type="text" id="suCode" placeholder="SWIGGY" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,10)">
+        </div>
+        <div class="field">
+          <label>Hiring for department</label>
+          <div class="dept-grid" id="deptGrid">
+            <button class="dept-pill" onclick="selectDept('Software Engineering')"><span class="dept-icon">💻</span>Software Engineering</button>
+            <button class="dept-pill" onclick="selectDept('Data Science')"><span class="dept-icon">📊</span>Data Science</button>
+            <button class="dept-pill" onclick="selectDept('Data Analytics')"><span class="dept-icon">📈</span>Data Analytics</button>
+            <button class="dept-pill" onclick="selectDept('Machine Learning')"><span class="dept-icon">🤖</span>Machine Learning</button>
+            <button class="dept-pill" onclick="selectDept('Product Analytics')"><span class="dept-icon">🔍</span>Product Analytics</button>
+            <button class="dept-pill" onclick="selectDept('Engineering')"><span class="dept-icon">⚙️</span>Engineering</button>
+            <button class="dept-pill" onclick="selectDept('Data Engineering')"><span class="dept-icon">🗄️</span>Data Engineering</button>
+            <button class="dept-pill" onclick="selectDept('AI Research')"><span class="dept-icon">🧠</span>AI Research</button>
+          </div>
+        </div>
+        <div class="err" id="suErr"></div>
+        <div class="ok" id="suOk"></div>
+        <button class="btn-primary" onclick="doSignUp()">Create account →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- APP SCREEN -->
+<div id="appScreen" class="screen">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-title">REDROB.RANKS</div>
+      <span class="badge-co" id="badgeCo"></span>
+      <span class="badge-dept" id="badgeDept"></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span class="recruiter-name" id="recruiterLabel"></span>
+      <button class="btn-logout" onclick="doLogout()">Sign out</button>
+    </div>
+  </div>
+
+  <div class="weights-bar" id="weightsBar"></div>
+
+  <div id="inputWrap">
+    <div class="main-content">
+      <div class="section-title">Candidate profiles</div>
+      <div id="candidateList" style="width:100%;max-width:700px;display:flex;flex-direction:column;align-items:center;"></div>
+    </div>
+    <div class="action-center">
+      <button class="btn-add" onclick="addCandidate()">+ Add candidate</button>
+      <button class="btn-rank" onclick="runRanking()">Run ranking →</button>
+    </div>
+    <div class="formula-bar" id="formulaBar"></div>
+  </div>
+
+  <div id="resultsWrap" class="results-wrap">
+    <div class="nav-row">
+      <button class="nav-btn" onclick="showInput()">← Edit candidates</button>
+      <button class="nav-btn act">Rankings</button>
+    </div>
+    <div class="section-title">Rankings</div>
+    <div class="stats-row" id="statsRow"></div>
+    <div class="podium" id="podium"></div>
+    <div class="rank-list" id="rankList"></div>
+    <div class="csv-box">
+      <div class="csv-hdr"><span class="csv-ttl">CSV export</span><button class="csv-cp" onclick="copyCSV()">Copy</button></div>
+      <div class="csv-body" id="csvBody"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DEPT_WEIGHTS={
+  'Software Engineering':{skills:0.38,career:0.32,exp:0.18,loc:0.07,edu:0.05,jd:["javascript","typescript","react","node","python","system design","java","go","microservices","api","aws","docker","kubernetes"]},
+  'Data Science':{skills:0.35,career:0.30,exp:0.20,loc:0.08,edu:0.07,jd:["python","sql","machine learning","deep learning","tensorflow","nlp","recommendation","aws","spark","airflow","statistics"]},
+  'Data Analytics':{skills:0.32,career:0.28,exp:0.18,loc:0.10,edu:0.12,jd:["sql","python","excel","tableau","power bi","looker","a/b testing","funnel","cohort","retention","reporting"]},
+  'Machine Learning':{skills:0.42,career:0.33,exp:0.14,loc:0.06,edu:0.05,jd:["python","pytorch","tensorflow","machine learning","deep learning","llm","transformers","rag","embeddings","mlops","cuda"]},
+  'Product Analytics':{skills:0.30,career:0.30,exp:0.15,loc:0.15,edu:0.10,jd:["python","sql","excel","tableau","product analytics","growth","a/b testing","funnel analysis","cohort","retention","looker"]},
+  'Engineering':{skills:0.40,career:0.35,exp:0.15,loc:0.07,edu:0.03,jd:["python","machine learning","pytorch","retrieval","embeddings","rag","llm","transformers","nlp","fastapi","mlops"]},
+  'Data Engineering':{skills:0.38,career:0.30,exp:0.18,loc:0.08,edu:0.06,jd:["python","spark","airflow","kafka","sql","databricks","aws","gcp","etl","pipeline","dbt","bigquery"]},
+  'AI Research':{skills:0.45,career:0.28,exp:0.14,loc:0.05,edu:0.08,jd:["python","pytorch","research","llm","transformers","rl","nlp","computer vision","arxiv","cuda","fine-tuning"]}
+};
+
+const BUILT_IN={
+  "SWIGGY/REC001":{name:"Aisha Mehta",company:"Swiggy",dept:"Engineering",color:"#ff6b35",
+    weights:{...DEPT_WEIGHTS['Engineering']},jd_focus:DEPT_WEIGHTS['Engineering'].jd,
+    defaults:[
+      {name:"Priya Sharma",yoe:7,loc:"Pune, Maharashtra",notice:15,company:"Swiggy",role:"Senior ML Engineer",edu:"IIT Bombay",otw:"Yes",rr:0.92,gh:0.85,skills:"Python, 5, 72\nMachine Learning, 5, 60\nRetrieval, 4, 36\nEmbeddings, 4, 30\nPyTorch, 5, 48"},
+      {name:"Karan Mishra",yoe:5,loc:"Bengaluru, Karnataka",notice:30,company:"Google",role:"ML Engineer",edu:"IIT Delhi",otw:"Yes",rr:0.80,gh:0.75,skills:"Python, 5, 60\nLLM, 4, 24\nRAG, 4, 18\nTransformers, 5, 36"},
+      {name:"Rahul Verma",yoe:3,loc:"Jaipur, Rajasthan",notice:90,company:"TCS",role:"Data Analyst",edu:"State University",otw:"No",rr:0.30,gh:0.20,skills:"Python, 3, 24\nSQL, 3, 18"},
+    ]},
+  "RAZORPAY/REC002":{name:"Deepa Iyer",company:"Razorpay",dept:"Data Science",color:"#7b7fe8",
+    weights:{...DEPT_WEIGHTS['Data Science']},jd_focus:DEPT_WEIGHTS['Data Science'].jd,
+    defaults:[
+      {name:"Anita Rao",yoe:8,loc:"Bengaluru, Karnataka",notice:30,company:"Razorpay",role:"Data Scientist",edu:"NIT Trichy",otw:"Yes",rr:0.75,gh:0.80,skills:"Python, 5, 60\nSQL, 5, 72\nMachine Learning, 4, 48\nTensorFlow, 4, 36\nAWS, 3, 24"},
+      {name:"Vikram Nair",yoe:6,loc:"Hyderabad, Telangana",notice:45,company:"Flipkart",role:"Senior Data Scientist",edu:"IIT Madras",otw:"Yes",rr:0.65,gh:0.60,skills:"Python, 5, 72\nRecommendation, 5, 60\nSpark, 4, 48\nAirflow, 4, 36"},
+    ]},
+  "MEESHO/REC003":{name:"Ritu Gupta",company:"Meesho",dept:"Product Analytics",color:"#20c997",
+    weights:{...DEPT_WEIGHTS['Product Analytics']},jd_focus:DEPT_WEIGHTS['Product Analytics'].jd,
+    defaults:[
+      {name:"Sneha Joshi",yoe:4,loc:"Mumbai, Maharashtra",notice:30,company:"Meesho",role:"Product Analyst",edu:"IIM Ahmedabad",otw:"Yes",rr:0.82,gh:0.40,skills:"SQL, 5, 48\nPython, 4, 36\nTableau, 4, 30\nA/B Testing, 4, 24\nProduct Analytics, 5, 36"},
+      {name:"Arjun Shah",yoe:2,loc:"Pune, Maharashtra",notice:15,company:"Zomato",role:"Business Analyst",edu:"BITS Pilani",otw:"Yes",rr:0.70,gh:0.30,skills:"SQL, 4, 24\nExcel, 5, 30\nCohort, 3, 12\nFunnel Analysis, 3, 12"},
+    ]}
+};
+
+const PRODUCT_COS=["google","meta","amazon","microsoft","apple","netflix","openai","anthropic","flipkart","swiggy","zomato","meesho","cred","razorpay","zepto","groww","phonepe","paytm","freshworks","zoho","atlassian","adobe","nvidia"];
+const CONSULT=["accenture","tcs","infosys","wipro","cognizant","capgemini","hcl","tech mahindra","deloitte","pwc","kpmg","ibm","mindtree","mphasis"];
+const TOP_LOCS=["pune","noida","delhi","gurugram","gurgaon","bengaluru","bangalore","hyderabad","mumbai"];
+const TIER1=["iit","bits pilani","nit","iiit","iim","dtu","vit","srm","manipal"];
+const MEDALS=["🥇","🥈","🥉"];
+const BAR_COLORS=["linear-gradient(90deg,#f5c500,#ffea70)","linear-gradient(90deg,#b0b0c8,#d8d8e8)","linear-gradient(90deg,#cd7f32,#e8a060)","linear-gradient(90deg,#7b7fe8,#a0a8f8)","linear-gradient(90deg,#40c0a0,#80e8c0)"];
+
+let session=null,candidates=[],cardCount=0,selectedDept='',userDB={};
+
+function switchTab(t){
+  document.querySelectorAll('.tab').forEach((b,i)=>b.classList.toggle('active',i===(t==='signup'?1:0)));
+  document.getElementById('signinSection').classList.toggle('active',t==='signin');
+  document.getElementById('signupSection').classList.toggle('active',t==='signup');
+}
+function fillDemo(co,id){document.getElementById('siCompany').value=co;document.getElementById('siRecID').value=id;}
+function updateCompanyCode(){const v=document.getElementById('suCompany').value.trim().toUpperCase().replace(/\s+/g,'').replace(/[^A-Z0-9]/g,'').slice(0,10);document.getElementById('suCode').value=v;}
+function selectDept(d){selectedDept=d;document.querySelectorAll('.dept-pill').forEach(p=>p.classList.toggle('sel',p.textContent.trim()===d));}
+
+function doSignIn(){
+  const co=document.getElementById('siCompany').value.trim();
+  const rid=document.getElementById('siRecID').value.trim();
+  const key=co+'/'+rid;
+  const rec=BUILT_IN[key]||userDB[key];
+  if(rec){document.getElementById('siErr').textContent='';session=rec;bootApp();}
+  else document.getElementById('siErr').textContent='Invalid company code or recruiter ID.';
+}
+function doSignUp(){
+  const name=document.getElementById('suName').value.trim();
+  const company=document.getElementById('suCompany').value.trim();
+  const code=document.getElementById('suCode').value.trim();
+  const suErr=document.getElementById('suErr');const suOk=document.getElementById('suOk');
+  suErr.textContent='';suOk.textContent='';
+  if(!name){suErr.textContent='Enter your name.';return;}
+  if(!company){suErr.textContent='Enter company name.';return;}
+  if(!code||code.length<2){suErr.textContent='Enter a valid company code.';return;}
+  if(!selectedDept){suErr.textContent='Select a department.';return;}
+  const recID='REC'+(100+Object.keys(userDB).length+1).toString().slice(1);
+  const key=code+'/'+recID;
+  const dw=DEPT_WEIGHTS[selectedDept];
+  userDB[key]={name,company,dept:selectedDept,color:'#7b7fe8',
+    weights:{skills:dw.skills,career:dw.career,exp:dw.exp,loc:dw.loc,edu:dw.edu},
+    jd_focus:dw.jd,defaults:[]};
+  suOk.textContent=`Account created! Sign in with ${code} / ${recID}`;
+  document.getElementById('suName').value='';document.getElementById('suCompany').value='';document.getElementById('suCode').value='';
+  selectedDept='';document.querySelectorAll('.dept-pill').forEach(p=>p.classList.remove('sel'));
+  setTimeout(()=>{switchTab('signin');document.getElementById('siCompany').value=code;document.getElementById('siRecID').value=recID;},1800);
+}
+function doLogout(){
+  session=null;candidates=[];cardCount=0;
+  document.getElementById('loginScreen').className='screen active';
+  document.getElementById('appScreen').className='screen';
+  document.getElementById('candidateList').innerHTML='';
+  document.getElementById('siCompany').value='';document.getElementById('siRecID').value='';
+}
+function bootApp(){
+  document.getElementById('loginScreen').className='screen';
+  document.getElementById('appScreen').className='screen active';
+  const co=document.getElementById('badgeCo');
+  co.textContent=session.company.toUpperCase();
+  co.style.cssText='padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:0.5px;background:'+session.color+'22;border:1px solid '+session.color+'55;color:'+session.color;
+  document.getElementById('badgeDept').textContent=session.dept;
+  document.getElementById('recruiterLabel').textContent=session.name;
+  const w=session.weights;
+  const dims=[['Skills',(w.skills*100).toFixed(0)+'%'],['Career',(w.career*100).toFixed(0)+'%'],['Experience',(w.exp*100).toFixed(0)+'%'],['Location',(w.loc*100).toFixed(0)+'%'],['Education',(w.edu*100).toFixed(0)+'%']];
+  const max=Math.max(w.skills,w.career,w.exp,w.loc,w.edu);
+  document.getElementById('weightsBar').innerHTML='<span class="wt-label">'+session.dept+' weights</span><div class="wt-pills">'+dims.map(([d,v])=>`<span class="wt-pill ${parseFloat(v)>=max*100?'hi':''}">${d} ${v}</span>`).join('')+'</div>';
+  document.getElementById('formulaBar').textContent=`Score = (${(w.skills*100).toFixed(0)}% Skills + ${(w.career*100).toFixed(0)}% Career + ${(w.exp*100).toFixed(0)}% Exp + ${(w.loc*100).toFixed(0)}% Location + ${(w.edu*100).toFixed(0)}% Education) × Behavioral multiplier`;
+  candidates=[];cardCount=0;document.getElementById('candidateList').innerHTML='';
+  showInput();(session.defaults||[]).forEach(d=>addCandidate(d));
+}
+function initials(n){return n.trim().split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase()||'?';}
+function addCandidate(d={}){
+  cardCount++;const id=cardCount;
+  const div=document.createElement('div');div.className='candidate-card';div.id='card-'+id;
+  div.innerHTML=`<div class="card-header"><div class="avatar" id="av-${id}">${initials(d.name||'')}</div><div><div class="card-label">Candidate ${id}</div><div class="card-name-preview" id="np-${id}">${d.name||'Enter name below'}</div></div><div style="margin-left:auto;cursor:pointer;color:rgba(180,160,255,0.35);font-size:18px;line-height:1" onclick="removeCard(${id})">×</div></div>
+  <div class="field-grid">
+    <div class="fg full"><label>Full name</label><input type="text" id="name-${id}" placeholder="Priya Sharma" value="${d.name||''}" oninput="updatePreview(${id})"></div>
+    <div class="fg"><label>Years of experience</label><input type="number" id="yoe-${id}" placeholder="7" value="${d.yoe||''}" min="0" max="40"></div>
+    <div class="fg"><label>Notice period (days)</label><input type="number" id="notice-${id}" placeholder="30" value="${d.notice||''}" min="0"></div>
+    <div class="fg"><label>Current location</label><input type="text" id="loc-${id}" placeholder="Bengaluru, Karnataka" value="${d.loc||''}"></div>
+    <div class="fg"><label>Open to work</label><div class="radio-row"><div class="rpill ${d.otw==='No'?'':'sel'}" id="oy-${id}" onclick="setOtw(${id},'Yes')">Yes</div><div class="rpill ${d.otw==='No'?'sel':''}" id="on-${id}" onclick="setOtw(${id},'No')">No</div></div></div>
+    <div class="fg"><label>Current company</label><input type="text" id="co-${id}" placeholder="Swiggy" value="${d.company||''}"></div>
+    <div class="fg"><label>Role title</label><input type="text" id="ro-${id}" placeholder="Senior ML Engineer" value="${d.role||''}"></div>
+    <div class="fg full"><label>Institution</label><input type="text" id="edu-${id}" placeholder="IIT Bombay" value="${d.edu||''}"></div>
+    <div class="fg"><label>Recruiter response rate</label><div class="slider-row"><input type="range" id="rr-${id}" min="0" max="1" step="0.05" value="${d.rr||0.65}" oninput="document.getElementById('rrv-${id}').textContent=(+this.value*100).toFixed(0)+'%'"><span class="sv" id="rrv-${id}">${((d.rr||0.65)*100).toFixed(0)}%</span></div></div>
+    <div class="fg"><label>GitHub activity score</label><div class="slider-row"><input type="range" id="gh-${id}" min="0" max="1" step="0.05" value="${d.gh||0.55}" oninput="document.getElementById('ghv-${id}').textContent=(+this.value*100).toFixed(0)+'%'"><span class="sv" id="ghv-${id}">${((d.gh||0.55)*100).toFixed(0)}%</span></div></div>
+    <div class="fg full"><label>Skills (Name, Proficiency 1-5, Months — one per line)</label><textarea id="sk-${id}" placeholder="Python, 5, 72&#10;Machine Learning, 5, 60">${d.skills||''}</textarea></div>
+  </div>`;
+  document.getElementById('candidateList').appendChild(div);candidates.push(id);
+}
+function updatePreview(id){const n=document.getElementById('name-'+id).value;document.getElementById('av-'+id).textContent=initials(n);document.getElementById('np-'+id).textContent=n||'Enter name below';}
+function setOtw(id,v){document.getElementById('oy-'+id).className='rpill'+(v==='Yes'?' sel':'');document.getElementById('on-'+id).className='rpill'+(v==='No'?' sel':'');}
+function removeCard(id){document.getElementById('card-'+id)?.remove();candidates=candidates.filter(c=>c!==id);}
+function showInput(){document.getElementById('inputWrap').style.display='';document.getElementById('resultsWrap').style.display='none';}
+function parseSkills(raw){if(!raw)return[];return raw.trim().split('\n').map(l=>{const p=l.split(',').map(x=>x.trim());if(!p[0])return null;return{name:p[0],proficiency_level:parseInt(p[1])||3,duration_months:parseInt(p[2])||24};}).filter(Boolean);}
+function scoreSkills(skills){if(!skills.length||!session)return 0;let total=0,maxw=0;skills.forEach(s=>{const n=s.name.toLowerCase();const w=session.jd_focus.reduce((acc,k)=>(k.includes(n)||n.includes(k)?Math.max(acc,0.85+(session.jd_focus.indexOf(k)<3?0.10:0)):acc),0);if(w>0){const p=s.proficiency_level/5,m=Math.min(s.duration_months/36,1);total+=(0.4*p+0.3*m+0.3*0.75)*w;maxw+=w;}});return maxw>0?Math.min(total/maxw,1):0;}
+function scoreCareer(co,ro){co=(co||'').toLowerCase();ro=(ro||'').toLowerCase();const isProd=PRODUCT_COS.some(p=>co.includes(p));const isCon=CONSULT.some(c=>co.includes(c));const coS=isProd?1.0:isCon?0.28:0.60;const roKw=session?session.jd_focus.slice(0,6):[];const roS=roKw.some(k=>ro.includes(k))?0.9:0.3;return Math.min(0.5*coS+0.5*roS,1);}
+function scoreExp(yoe){if(yoe===''||yoe==null)return 0;yoe=+yoe;if(yoe>=6&&yoe<=8)return 1.0;if(yoe>=5)return 0.85;if(yoe>8&&yoe<=10)return 0.80;if(yoe>=4)return 0.65;if(yoe>10)return 0.55;return 0.35;}
+function scoreLoc(loc,notice){const locS=TOP_LOCS.some(l=>(loc||'').toLowerCase().includes(l))?1.0:0.4;let nS=0.5;if(notice===''||notice==null)nS=0.5;else if(+notice===0)nS=1.0;else if(+notice<=15)nS=0.90;else if(+notice<=30)nS=0.75;else if(+notice<=60)nS=0.50;else nS=0.20;return 0.6*locS+0.4*nS;}
+function scoreEdu(edu){if(!edu)return 0.4;return TIER1.some(t=>(edu||'').toLowerCase().includes(t))?1.0:0.55;}
+function behMult(otw,rr,gh){const a=0.4*(otw?1:0.3)+0.35+0.15*0.8+0.10*0.5;const e=0.45*Math.min(+rr,1)+0.30*0.7+0.25*0.8;const c=0.35*0.85+0.30*0.4+0.35*Math.min(+gh,1);return Math.min(0.3+0.9*(0.45*a+0.35*e+0.20*c),1.2);}
+
+function runRanking(){
+  if(!session)return;
+  const w=session.weights;const results=[];
+  candidates.forEach(id=>{
+    const name=document.getElementById('name-'+id)?.value?.trim();if(!name)return;
+    const yoe=document.getElementById('yoe-'+id)?.value;
+    const loc=document.getElementById('loc-'+id)?.value;
+    const notice=document.getElementById('notice-'+id)?.value;
+    const co=document.getElementById('co-'+id)?.value;
+    const ro=document.getElementById('ro-'+id)?.value;
+    const edu=document.getElementById('edu-'+id)?.value;
+    const otwYes=document.getElementById('oy-'+id)?.classList.contains('sel');
+    const rr=document.getElementById('rr-'+id)?.value||0.65;
+    const gh=document.getElementById('gh-'+id)?.value||0.55;
+    const skills=parseSkills(document.getElementById('sk-'+id)?.value);
+    const sSk=scoreSkills(skills),sCa=scoreCareer(co,ro),sEx=scoreExp(yoe),sLo=scoreLoc(loc,notice),sEd=scoreEdu(edu);
+    const bm=behMult(otwYes,rr,gh);
+    const raw=w.skills*sSk+w.career*sCa+w.exp*sEx+w.loc*sLo+w.edu*sEd;
+    results.push({name,yoe,loc,co,ro,otwYes,sSk,sCa,sEx,sLo,sEd,bm,final:raw*bm});
+  });
+  if(!results.length){alert('Add at least one candidate!');return;}
+  results.sort((a,b)=>b.final-a.final);
+  const sr=document.getElementById('statsRow');
+  const avg=results.reduce((s,c)=>s+c.final,0)/results.length;
+  sr.innerHTML=`<div class="stat-card"><div class="stat-val">${results.length}</div><div class="stat-lbl">Candidates</div></div><div class="stat-card"><div class="stat-val">${(results[0].final*100).toFixed(1)}</div><div class="stat-lbl">Top score</div></div><div class="stat-card"><div class="stat-val">${(avg*100).toFixed(1)}</div><div class="stat-lbl">Average</div></div><div class="stat-card"><div class="stat-val">${results.filter(c=>c.otwYes).length}</div><div class="stat-lbl">Open to work</div></div>`;
+  const podium=document.getElementById('podium');podium.innerHTML='';
+  const po=results.length>=3?[{c:results[1],cl:'silver'},{c:results[0],cl:'gold'},{c:results[2],cl:'bronze'}]:results.map((c,i)=>({c,cl:['gold','silver','bronze'][i]}));
+  po.forEach(({c,cl})=>{const idx=results.indexOf(c);const d=document.createElement('div');d.className='pc '+cl;d.innerHTML=`<div class="pm">${MEDALS[idx]||'#'+(idx+1)}</div><div class="pn">${c.name}</div><div class="pr">${c.ro||'—'}</div><div class="ps">${(c.final*100).toFixed(1)}</div><div class="psl">/ 100</div>`;podium.appendChild(d);});
+  const rl=document.getElementById('rankList');rl.innerHTML='';
+  results.forEach((c,i)=>{
+    const dims=[['Skills',c.sSk],['Career',c.sCa],['Exp',c.sEx],['Location',c.sLo],['Education',c.sEd]];
+    const g=BAR_COLORS[i]||BAR_COLORS[3];
+    const d=document.createElement('div');d.className='rrow';
+    d.innerHTML=`<div class="rnum">${MEDALS[i]||'#'+(i+1)}</div><div class="rinfo"><div class="rname">${c.name}</div><div class="rmeta">${c.ro||'—'} · ${c.co||'—'} · ${c.loc||'—'} · ${c.yoe||'?'} yrs</div><div class="dbars">${dims.map(([l,v])=>`<div class="drow2"><span class="dlbl">${l}</span><div class="dtrack"><div class="dfill" style="width:${(v*100).toFixed(0)}%;background:${g}"></div></div><span class="dpct">${(v*100).toFixed(0)}%</span></div>`).join('')}</div></div><div class="sblock"><div class="sbig">${(c.final*100).toFixed(1)}</div><div class="ssm">/ 100</div><div style="font-size:9px;color:rgba(200,190,255,0.28);margin-top:2px">${c.bm.toFixed(2)}× beh.</div></div>`;
+    rl.appendChild(d);
+  });
+  const csv=['rank,name,role,company,location,yoe,final_score,skills,career,exp,location_score,education,behavioral,open_to_work,company_ctx,dept'];
+  results.forEach((c,i)=>csv.push(`${i+1},${c.name},${c.ro||''},${c.co||''},${c.loc||''},${c.yoe||''},${c.final.toFixed(4)},${c.sSk.toFixed(3)},${c.sCa.toFixed(3)},${c.sEx.toFixed(3)},${c.sLo.toFixed(3)},${c.sEd.toFixed(3)},${c.bm.toFixed(3)},${c.otwYes?'Yes':'No'},${session.company},${session.dept}`));
+  document.getElementById('csvBody').textContent=csv.join('\n');
+  document.getElementById('inputWrap').style.display='none';
+  document.getElementById('resultsWrap').style.display='flex';
+}
+function copyCSV(){const t=document.getElementById('csvBody').textContent;navigator.clipboard.writeText(t).then(()=>{document.querySelector('.csv-cp').textContent='Copied!';setTimeout(()=>document.querySelector('.csv-cp').textContent='Copy',2000);});}
+</script>
+</body>
+</html>
